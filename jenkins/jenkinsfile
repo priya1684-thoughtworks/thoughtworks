@@ -1,0 +1,43 @@
+yum install subversion
+
+sudo useradd -r -m -U -d /u01/svn -s /bin/bash svn
+
+mkdir /u01/svn
+mkdir /u01/svn/repos
+svnadmin create /u01/svn/repos/BRM_source
+
+chown -R svn:svn /u01/svn/repos/
+chmod -R 775 /u01/svn/repos/
+
+
+/u01/svn/svnwrapper.sh
+
+kjfg
+kfg
+#!/bin/sh 
+# set the umask so files are group-wriable
+umask 002
+# call the 'real' svnserve, also passing in the default repo location
+exec /usr/bin/svnserve "$@" -r /u01/svn/repos
+
+#####symlink###
+
+cd /usr/local/bin
+ln -s /u01/svn/svnwrapper.sh svnserve
+chmod 755 /u01/svn/svnwrapper.sh
+
+
+mkdir code
+mkdir code/trunk
+mkdir code/tags
+mkdir code/branches
+svn import /home/devops/import/BRM_source svn+ssh://svn@cnedevvm01/BRM_source -m 'inital import'
+svn import code svn+ssh://svn@cnedevvm01/u01/svn/repos/my_code -m 'inital import'
+rm -rf code
+
+###client setup###
+
+svn co svn+ssh://svn@cnedevvm01/my_code /home/devops/import
+
+
+vi ~/.subversion/config
