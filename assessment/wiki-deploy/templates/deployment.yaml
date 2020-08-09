@@ -1,0 +1,94 @@
+apiVersion: apps/v1 # for versions before 1.9.0 use apps/v1beta2
+kind: Deployment
+metadata:
+  name: mediawiki
+  labels:
+    app: mediawiki
+spec:
+  selector:
+    matchLabels:
+      app: mediawiki
+  template:
+    metadata:
+      labels:
+        app: mediawiki
+    spec:
+      containers:
+      - image: bitnami/mediawiki:1.34.0-debian-10-r31
+        name: mediawiki-deploy
+        env:
+        - name: ALLOW_EMPTY_PASSWORD
+          value: "yes"
+        - name: MYSQLDB_HOST
+          value: "172.31.7.163"
+        - name: MYSQLDB_PORT_NUMBER
+          value: "3306"
+        - name: MEDIAWIKI_DATABASE_NAME
+          value: "mediawikidb"
+        - name: MEDIAWIKI_DATABASE_USER
+          value: "root"
+        - name: MEDIAWIKI_DATABASE_PASSWORD
+          value: " "
+        - name: MEDIAWIKI_HOST
+          value: " "
+        - name: MEDIAWIKI_USERNAME
+          value: "user"
+        - name: MEDIAWIKI_PASSWORD
+          value: " "
+        - name: MEDIAWIKI_EMAIL
+          value: "priyankagollipelly584@gmail.com"
+        - name: MEDIAWIKI_WIKI_NAME
+          value: "My wiki"
+        ports:
+        - name: http
+          containerPort: 80
+        - name: https
+          containerPort: 443
+        livenessProbe:
+          httpGet:
+            path: /api.php
+            port: http
+            httpHeaders:
+            - name: Host
+              value: mediawiki
+          initialDelaySeconds: 120
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1																	
+        readinessProbe:
+          httpGet:
+            path: /api.php
+            port: http
+            httpHeaders:
+            - name: Host
+              value: mediawiki
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 6
+          successThreshold: 1
+        volumeMounts:
+        - name: mediawiki-persistent-storage
+          mountPath: /var/lib/mediawiki
+      volumes:
+      - name: mediawiki-persistent-storage
+        persistentVolumeClaim:
+          claimName: mediawiki-pv-claim
+---          
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: mediawiki
+spec:
+  type: NodePort
+  selector:
+    app: mediawiki
+  ports:
+      # By default and for convenience, the `targetPort` is set to the same value as the `port` field.
+    - port: 80
+      targetPort: 80
+      # Optional field
+      # By default and for convenience, the Kubernetes control plane will allocate a port from a range (default: 30000-32767)
+      nodePort: 30007

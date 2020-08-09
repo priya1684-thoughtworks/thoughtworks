@@ -1,0 +1,164 @@
+# Default values for mediawiki.
+# This is a YAML-formatted file.
+# Declare variables to be passed into your templates.
+
+replicaCount: 1
+
+image:
+  registry: docker.io
+  repository: bitnami/mediawiki
+  tag: 1.34.0-debian-10-r31
+  pullPolicy: IfNotPresent
+  # Overrides the image tag whose default is the chart appVersion.
+  
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+mediawikiUser: user
+mediawikiEmail: user@example.com
+mediawikiName: My Wiki
+
+
+allowEmptyPassword: "yes"
+
+externalDatabase:
+  ## Database host
+  host:
+
+  ## Database port
+  port: 3306
+
+  ## Database user
+  user: bn_mediawiki
+
+  ## Database password
+  password:
+
+  ## Database name
+  database: bitnami_mediawiki
+  #allowEmptyPassword: "yes"
+
+mysql:
+  enabled: true
+  ## Disable MariaDB replication
+  replication:
+    enabled: true
+  db:
+    name: bitnami_mediawiki
+    user: bn_mediawiki
+    #allowEmptyPassword: "yes"
+
+serviceAccount:
+  # Specifies whether a service account should be created
+  create: true
+  # Annotations to add to the service account
+  annotations: {}
+  # The name of the service account to use.
+  # If not set and create is true, a name is generated using the fullname template
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+  # fsGroup: 2000
+
+securityContext: {}
+  # capabilities:
+  #   drop:
+  #   - ALL
+  # readOnlyRootFilesystem: true
+  # runAsNonRoot: true
+  # runAsUser: 1000
+
+service:
+  type: LoadBalancer
+  port: 80
+  nodePorts:
+    http: ""
+    https: ""
+  externalTrafficPolicy: Cluster
+
+ingress:
+  enabled: false
+  hosts:
+  - name: mediawiki.local
+
+    ## Set this to true in order to enable TLS on the ingress record
+    ## A side effect of this will be that the backend mediawiki service will be connected at port 443
+    tls: false
+
+    ## Set this to true in order to add the corresponding annotations for cert-manager
+    certManager: false
+
+    ## If TLS is set to true, you must declare what secret will store the key/certificate for TLS
+    tlsSecret: mediawiki.local-tls
+
+    annotations:
+    #  kubernetes.io/ingress.class: nginx
+
+
+persistence:
+  enabled: true
+  # storageClass: "-"
+  accessMode: ReadWriteOnce
+  size: 8Gi
+
+resources:
+  requests:
+    memory: 512Mi
+    cpu: 300m
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 100
+  targetCPUUtilizationPercentage: 80
+  # targetMemoryUtilizationPercentage: 80
+
+livenessProbe:
+  enabled: true
+  initialDelaySeconds: 120
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+readinessProbe:
+  enabled: true
+  initialDelaySeconds: 30
+  periodSeconds: 10
+  timeoutSeconds: 5
+  failureThreshold: 6
+  successThreshold: 1
+
+
+affinity: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}
+
+metrics:
+  enabled: false
+  image:
+    registry: docker.io
+    repository: bitnami/apache-exporter
+    tag: 0.7.0-debian-10-r29
+    pullPolicy: IfNotPresent
+    ## Optionally specify an array of imagePullSecrets.
+    ## Secrets must be manually created in the namespace.
+    ## ref: https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/
+    ##
+    # pullSecrets:
+    #   - myRegistryKeySecretName
+     ## Metrics exporter pod Annotation and Labels
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "9117"
+  ## Metrics exporter resource requests and limits
+  ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
+  ##
+  # resources: {}
