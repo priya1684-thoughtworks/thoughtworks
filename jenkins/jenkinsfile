@@ -1,12 +1,9 @@
 node {
     deleteDir();
         try {
-                //This is a wrapper code which is used for executing pipeline Template
+                
                 clonerepo(env.git_pipeline_server, env.git_pipeline_repo, env.git_pipeline_user, env.git_pipeline_branch);
-                //commonUtils.clonesvn(env.svn_source_code_repo);
-                //sh "svn co svn+ssh://svn@cnedevvm01/devops ."
-                //clonerepo(env.git_pipeline_server, env.git_pipeline_repo, env.git_pipeline_user, env.git_pipeline_branch);
-        	    def thoughtworks_template_cd = load "devops/Jenkins/template-pipeline/CD_single_pipeline_template.groovy"
+        	    //def thoughtworks_template_cd = load "devops/Jenkins/template-pipeline/CD_single_pipeline_template.groovy"
 		        thoughtworks_template_cd.pipelineTemplateCD();
         } catch (Exception e) {
                 throw e;
@@ -25,132 +22,62 @@ def clonerepo(server,repo,user,branch) {
 
 def helmDeploy(kubernetes_credential_id,kubernetes_cluster_url,namespace,app_name,chart_name,chart_path) {
         dir('devops/Helm-Charts/Helm-Charts-PS2') {
-                //withKubeConfig([credentialsId: "${kubernetes_credential_id}", serverUrl: "${kubernetes_cluster_url}"]) {
+                withKubeConfig([credentialsId: "${kubernetes_credential_id}", serverUrl: "${kubernetes_cluster_url}"]) {
 
-                sh "helm list -n brmps2 && helm upgrade -n ${namespace} ${app_name} ${chart_name} -f ${chart_path}"
+                sh "helm list -n brmps2 && helm install -n ${namespace} ${app_name} ${chart_name} -f ${chart_path}"
 
 
-                //}
+                }
         }
 }
 def pipelineTemplateCD() {
 try {
         //Loading common groovy utilities file to a variable
-        def commonUtils = load "devops/Jenkins/common-utility/common.groovy"
-		        stage("Ticketing") {
+    def commonUtils = load "devops/Jenkins/common-utility/common.groovy"
+	def props = readProperties file: 'source_repo/BRM_source/BRM-source/control/config.properties'
+	stage("Ticketing") {
                                         
-                                }
-                stage("Source Checkout") {
-                        try {
-                                //println "checking out source repo"
-                                commonUtils.logs('info', 'Checking out source code repo')
-                                sh "mkdir source_repo"
-                                dir('source_repo'){                               
-									if(env.version_control_tool == 'svn') {
-										commonUtils.clonesvn(env.svn_source_code_repo);
-									}else if(env.version_control_tool == 'git') {						
-										commonUtils.clonerepo(env.git_source_code_server, env.git_source_code_repo, env.git_source_code_user, env.git_source_code_branch);
-									}
-                                }
-                                commonUtils.logs('success', 'Source Checkout stage executed successfully')
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.updateTicket(issue_id,env.JOB_NAME,1,"Source Checkout stage executed successfully",env.BUILD_NUMBER);
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Source Checkout stage executed successfully",env.BUILD_NUMBER,21);
-								}	
-                        } catch (Exception e) {
-                                //Updating redmine ticket along with the error message
-                                commonUtils.logs('error', "Source Checkout stage failed with error -- $e");
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.failedTicket(issue_id,env.JOB_NAME,1,"Source Checkout stage failed with the error -- $e",env.BUILD_NUMBER)
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Source Checkout stage failed with the error -- $e",env.BUILD_NUMBER,51)
-								}
-                                commonUtils.urlList();
-                                throw e;
                         }
-                }		
-                stage("Deploy-k8s Dev") {
+		
+	parallel( firstBranch: {
+        if ("${props.mysql}" == "true") {
+           stage("Deploy-k8s Dev") {
                         try {
                                 //println "Deploying the application using helm"
-                               commonUtils.logs('info', 'Deploying application using helm');
-                               commonUtils.helmDeploy(env.kubernetes_credential_id, env.kubernetes_cluster_url, env.namespace, env.app_name, env.chart_name, env.chart_path)
-                                commonUtils.logs('success', 'Deploy-k8s Dev stage executed successfully')
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.updateTicket(issue_id,env.JOB_NAME,1,"Deploy-k8s Dev stage executed successfully",env.BUILD_NUMBER);
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Deploy-k8s Dev stage executed successfully",env.BUILD_NUMBER,21);
-								}
-                        } catch(Exception e) {
-                                //Updating redmine ticket along with the error message
-                                commonUtils.logs('error', "Deploy-k8s Dev stage failed with error -- $e");
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.failedTicket(issue_id,env.JOB_NAME,1,"Deploy-k8s Dev stage failed with the error -- $e",env.BUILD_NUMBER)
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Deploy-k8s Dev stage failed with the error -- $e",env.BUILD_NUMBER,51)
-								}
-                                commonUtils.urlList();
-                                throw e;
-                        }
-                }
-
-                stage("Automated Testing") {
-                        try {
-                               // println "Testing the application"
-                                commonUtils.logs('info', 'Testing the deployed application using test cases');
-                                commonUtils.mavenTest();
-                                commonUtils.logs('success', 'Automated Testing stage executed successfully')
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.updateTicket(issue_id,env.JOB_NAME,1,"Automated Testing stage executed successfully",env.BUILD_NUMBER);
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Automated Testing stage executed successfully",env.BUILD_NUMBER,21);
-								}
-                        } catch(Exception e) {
-                                //Updating redmine ticket along with the error message
-                                commonUtils.logs('error', "Automated Testing stage failed with error -- $e");
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.failedTicket(issue_id,env.JOB_NAME,1,"Automated Testing stage failed with the error -- $e",env.BUILD_NUMBER)
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Automated Testing stage failed with the error -- $e",env.BUILD_NUMBER,51)
-								}
-                                commonUtils.redmineTicketAssign(env.JOB_NAME, 7 , env.BUILD_NUMBER);
-                                commonUtils.urlList();
-                                throw e;
-                        }
-                }
-                stage("Deploy-k8s Prod") {
-                        try {
-                                //println "Deploying the application using helm"
-                               commonUtils.logs('info', 'Deploying application using helm in prod environment');							   
                                //commonUtils.helmDeploy(env.kubernetes_credential_id, env.kubernetes_cluster_url, env.namespace, env.app_name, env.chart_name, env.chart_path)
-                                commonUtils.logs('success', 'Deploy-k8s Prod stage executed successfully')
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.updateTicket(issue_id,env.JOB_NAME,1,"Deploy-k8s Prod stage executed successfully",env.BUILD_NUMBER);
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Deploy-k8s Prod stage executed successfully",env.BUILD_NUMBER,21);
-								}
+								
+                        } catch(Exception e) {
+                                throw e;
+                        }
+                }	
+        } else {
+            println "error in first branch"
+        }
+    },secondBranch: {
+           if ("${props.dm}" == "true") {
+				stage("Deploy-k8s Dev") {
+                        try {helmDeploy(env.kubernetes_credential_id, env.kubernetes_cluster_url, env.namespace, env.app_name, env.chart_name, env.chart_path)
+                                //println "Deploying the application using helm
+                               //commonUtils.helmDeploy(env.kubernetes_credential_id, env.kubernetes_cluster_url, env.namespace, env.app_name, env.chart_name, env.chart_path)
+                                helmDeploy(env.kubernetes_credential_id, env.kubernetes_cluster_url, env.namespace, env.app_name, env.chart_name, env.chart_path)
+								
                         } catch(Exception e) {
                                 //Updating redmine ticket along with the error message
-                                commonUtils.logs('error', "Deploy-k8s Prod stage failed with error -- $e");
-								if(env.ticketing_tool == 'redmine')  {
-									commonUtils.failedTicket(issue_id,env.JOB_NAME,1,"Deploy-k8s Prod stage failed with the error -- $e",env.BUILD_NUMBER)
-									commonUtils.urlList();
-								} else if(env.ticketing_tool == 'jira') {
-									commonUtils.updateJiraTicket(issue_id,"Deploy-k8s Prod stage failed with the error -- $e",env.BUILD_NUMBER,51) 
-									commonUtils.urlListJira();
-								}
+                                
                                 throw e;
                         }
                 }
-                
-                
+        } else {
+            println "error in second branch"
+        }
+    }
+      
         } catch (Exception e) {
                 throw e
         } finally {
                 //deleteDir();
         }
 }
-
 return this;
 
 

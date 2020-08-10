@@ -5,6 +5,7 @@ metadata:
   labels:
     app: mediawiki
 spec:
+  replicas: 2
   selector:
     matchLabels:
       app: mediawiki

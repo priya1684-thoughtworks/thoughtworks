@@ -8,8 +8,7 @@ echo “Install script for Jenkins Server”;
 
 echo “Installing Dependencies”;
 
-sudo apt-get install firewalld
-#apt-get install -y epel-release
+yum install -y epel-release
 
 firewall-cmd — add-port=8080/tcp — permanent — zone=public
 
@@ -19,7 +18,7 @@ setenforce 0
 
 sed -i ‘s/SELINUX=enforcing/SELINUX-disabled/g’ /etc/selinux/config
 
-sudo apt-get install openjdk-8-jre
+yum install -y java-1.8.0-openjdk-devel
 
 }
 
@@ -33,7 +32,7 @@ curl — silent — location http://pkg.jenkins-ci.org/redhat-stable/jenkins.rep
 
 rpm — import https://jenkins-ci.org/redhat/jenkins-ci.org.key
 
-apt-get install -y jenkins
+yum -y install jenkins
 
 echo “starting and enabling jenkins”
 
